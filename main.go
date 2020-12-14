@@ -158,25 +158,26 @@ func createWatcher(config Watcher) {
 				time.Sleep(duration)
 				continue
 			}
-			fmt.Println(string(out))
+			fmt.Println("config.onmatch", config.OnMatch)
+			fmt.Println("config.else", config.Else)
 			if config.Regex != "" {
 				if regex.Match(out) && config.OnMatch != "" {
 					exec.Command("bash", "-c", config.OnMatch).Output()
 					time.Sleep(duration)
 					continue
-				} else {
+				} else if config.Else != "" {
 					exec.Command("bash", "-c", config.Else).Output()
 					time.Sleep(duration)
 					continue
 				}
 			}
-			fmt.Println(strings.Contains(string(out), config.Contains), string(out), config.Contains)
+
 			if config.Contains != "" {
 				if strings.Contains(string(out), config.Contains) && config.OnMatch != "" {
 					exec.Command("bash", "-c", config.OnMatch).Output()
 					time.Sleep(duration)
 					continue
-				} else {
+				} else if config.Else != "" {
 					exec.Command("bash", "-c", config.Else).Output()
 					time.Sleep(duration)
 					continue
