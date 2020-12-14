@@ -170,7 +170,7 @@ func createWatcher(config Watcher) {
 					continue
 				}
 			}
-
+			fmt.Println(strings.Contains(string(out), config.Contains), string(out), config.Contains)
 			if config.Contains != "" {
 				if strings.Contains(string(out), config.Contains) && config.OnMatch != "" {
 					exec.Command("bash", "-c", config.OnMatch).Output()
