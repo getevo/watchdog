@@ -158,7 +158,7 @@ func createWatcher(config Watcher) {
 				time.Sleep(duration)
 				continue
 			}
-
+			fmt.Println(string(out))
 			if config.Regex != "" {
 				if regex.Match(out) && config.OnMatch != "" {
 					exec.Command("bash", "-c", config.OnMatch).Output()
