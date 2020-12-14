@@ -24,8 +24,15 @@ var configDir = "/etc/watchdog/conf.d"
 func main() {
 
 	fmt.Println("Watchdog Started")
+	fmt.Println(os.Args)
+	if len(os.Args) > 1 {
+		if os.Args[1] == "install" {
+			Install()
+		} else {
+			configDir = os.Args[1]
+		}
+	}
 
-	Install()
 	err := filepath.Walk(configDir,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -69,6 +76,63 @@ func Install() {
 	if !gpath.IsDirExist(configDir) {
 		gpath.MakePath(configDir)
 	}
+
+	res, err := exec.Command("bash", "-c", "cp "+strings.TrimRight(gpath.WorkingDir(), "/")+"/"+os.Args[0]+" /usr/bin/watchdog").Output()
+	if err != nil {
+		fmt.Println("Unable to install watchdog")
+		fmt.Println("cp " + strings.TrimRight(gpath.WorkingDir(), "/") + "/" + os.Args[0])
+		log.Fatal(err)
+	}
+	fmt.Println(string(res))
+
+	f, err := os.Create("/etc/systemd/system/watchdog.service")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer f.Close()
+
+	_, err = f.WriteString(`[Unit]
+Description=Watchdog
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5s
+ExecStart=/usr/bin/watchdog
+
+[Install]
+WantedBy=multi-user.target`)
+
+	if err != nil {
+		fmt.Println("Unable to install watchdog")
+		log.Fatal(err)
+	}
+
+	res, err = exec.Command("bash", "-c", "systemctl daemon-reload").Output()
+	if err != nil {
+		fmt.Println("Unable to install watchdog")
+		fmt.Println(string(res))
+		log.Fatal(err)
+	}
+	fmt.Println(string(res))
+	res, err = exec.Command("bash", "-c", "systemctl enable watchdog.service").Output()
+	if err != nil {
+		fmt.Println("Unable to install watchdog")
+		fmt.Println(string(res))
+		log.Fatal(err)
+	}
+	fmt.Println(string(res))
+	res, err = exec.Command("bash", "-c", "systemctl start watchdog.service").Output()
+	if err != nil {
+		fmt.Println("Unable to install watchdog")
+		fmt.Println(string(res))
+		log.Fatal(err)
+	}
+	fmt.Println(string(res))
+	fmt.Println("Installation done")
+	os.Exit(0)
 }
 
 func createWatcher(config Watcher) {
