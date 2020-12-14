@@ -15,7 +15,7 @@ import (
 )
 
 var defaults = Watcher{
-	Interval: 1 * time.Second,
+	Interval: "1s",
 	Log:      true,
 }
 
@@ -23,7 +23,7 @@ var configDir = "/etc/watchdog/conf.d"
 
 func main() {
 
-	fmt.Println()
+	fmt.Println("Watchdog Started")
 
 	Install()
 	err := filepath.Walk(configDir,
@@ -31,12 +31,14 @@ func main() {
 			if err != nil {
 				return err
 			}
-			if info.IsDir() {
+			if !strings.HasSuffix(info.Name(), ".yml") {
 				return nil
 			}
 			filename, _ := filepath.Abs(path)
 			yamlFile, err := ioutil.ReadFile(filename)
 			if err != nil {
+				fmt.Println(filename)
+				fmt.Println(string(yamlFile))
 				panic(err)
 			}
 			watcher := defaults
@@ -74,46 +76,51 @@ func createWatcher(config Watcher) {
 	if err != nil {
 		log.Println(err)
 	}
-	var regexes = []*regexp.Regexp{}
-	for _, item := range config.Regex {
-		regexes = append(regexes, regexp.MustCompile(item))
+	var regex = regexp.MustCompile(config.Regex)
+
+	duration, err := time.ParseDuration(config.Interval)
+	if err != nil {
+		panic(err)
 	}
 	go func() {
 		for {
-			for _, command := range config.Command {
-				out, err := exec.Command("bash", "-c", command).Output()
-				if err != nil {
-					if config.Log {
-						l.WriteString(string(out))
-					}
-					log.Println(err)
+
+			out, err := exec.Command("bash", "-c", config.Command).Output()
+			if err != nil {
+				if config.Log {
+					l.WriteString(string(out))
+				}
+				log.Println(err)
+				time.Sleep(duration)
+				continue
+			}
+
+			if config.Regex != "" {
+				if regex.Match(out) && config.OnMatch != "" {
+					exec.Command("bash", "-c", config.OnMatch).Output()
+					time.Sleep(duration)
+					continue
+				} else {
+					exec.Command("bash", "-c", config.Else).Output()
+					time.Sleep(duration)
 					continue
 				}
-
-				fmt.Println(string(out))
-				for _, regex := range regexes {
-					if regex.Match(out) && config.OnMatch != "" {
-						exec.Command("bash", "-c", config.OnMatch).Output()
-						continue
-					} else {
-						exec.Command("bash", "-c", config.Else).Output()
-						continue
-					}
-				}
-
-				for _, item := range config.Contains {
-					if strings.Contains(string(out), item) && config.OnMatch != "" {
-						exec.Command("bash", "-c", config.OnMatch).Output()
-						continue
-					} else {
-						exec.Command("bash", "-c", config.Else).Output()
-						continue
-					}
-				}
-
-				time.Sleep(config.Interval)
-
 			}
+
+			if config.Contains != "" {
+				if strings.Contains(string(out), config.Contains) && config.OnMatch != "" {
+					exec.Command("bash", "-c", config.OnMatch).Output()
+					time.Sleep(duration)
+					continue
+				} else {
+					exec.Command("bash", "-c", config.Else).Output()
+					time.Sleep(duration)
+					continue
+				}
+			}
+
+			time.Sleep(duration)
+
 		}
 	}()
 }
