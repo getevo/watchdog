@@ -57,6 +57,10 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
+
+	for {
+		time.Sleep(1 * time.Hour)
+	}
 }
 
 func Install() {
