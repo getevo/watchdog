@@ -31,7 +31,9 @@ func main() {
 			if err != nil {
 				return err
 			}
-
+			if info.IsDir() {
+				return nil
+			}
 			filename, _ := filepath.Abs(path)
 			yamlFile, err := ioutil.ReadFile(filename)
 			if err != nil {
