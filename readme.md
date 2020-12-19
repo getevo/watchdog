@@ -1,3 +1,5 @@
+# Whatchdog
+
 Usage:
 ```bash
 go get github.com/getevo/watchdog
